@@ -12,7 +12,7 @@
       "inheritEnvironments": [ "linux_arm" ],
       "remoteMachineName": "714618963;192.168.137.240 (username=pi, port=22, authentication=Password)",
       "remoteCMakeListsRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/src",
-      "remoteBuildRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/out/build/${name}",
+      "remoteBuildRoot": "$HOME/sbustest",
       "remoteInstallRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/out/install/${name}",
       "remoteCopySources": true,
       "rsyncCommandArgs": "-t --delete --delete-excluded",

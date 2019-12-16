@@ -2,5 +2,5 @@
 
 project ("RaspberryPI_SBUS")
 
-add_executable (RaspberryPI_SBUS "RaspberryPI_SBUS.cpp")
+add_executable (RaspberryPI_SBUS "RaspberryPI_SBUS.cpp" "RPiSbus.h")
 
