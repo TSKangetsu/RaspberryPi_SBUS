@@ -61,6 +61,8 @@ public:
 			}
 			usleep(waitTime);
 			lose_frameCount += 1;
+			if (lose_frameCount == 2)
+				return -1;
 		}
 
 		ChannelsData[0] = (uint16_t)(((sbusData[1] | sbusData[2] << 8) & 0x07FF)
