@@ -6,11 +6,21 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <asm-generic/termbits.h>
+enum SbusMode
+{
+	Normal = 25,
+	HighSpeed = 0
+};
 
 class Sbus
 {
 public:
-	inline Sbus(char* UartDevice)
+	/* UartDevice is dev file , such as "/dev/ttyS0" 
+	   @SbusMode: Normal for wait all sbus data is ready and parse data to pwm count , 
+	                     use SbusRead(int* channelsData, int waitTime) only , do not use SbusQuickRead()
+	   @		  HighSpeed  only use SbusQuickRead() , cannot use SbusRead(int* channelsData, int waitTime) , 
+	                     only return a byte , use SbusPaser(int *sbusRaw , int *Channel) to dealdata*/
+	inline Sbus(char* UartDevice, SbusMode sbus)
 	{
 		Sbus_fd = open(UartDevice, O_RDWR | O_NONBLOCK | O_CLOEXEC);
 		struct termios2 options { };
@@ -29,19 +39,19 @@ public:
 		options.c_cflag |= (CS8 | CSTOPB | CLOCAL | PARENB | BOTHER | CREAD);
 		options.c_ispeed = 100000;
 		options.c_ospeed = 100000;
-		options.c_cc[VMIN] = 25;
+		options.c_cc[VMIN] = sbus;
 		options.c_cc[VTIME] = 0;
 
 		if (0 != ioctl(Sbus_fd, TCSETS2, &options)) {
 			close(Sbus_fd);
 			Sbus_fd = -1;
 		}
-		FD_ZERO(&fd_Maker);
-		FD_SET(Sbus_fd, &fd_Maker);
 	}
 
-	inline int SbusRead(int* channelsData , int waitTime)
+	inline int SbusRead(int* channelsData, int waitTime)
 	{
+		FD_ZERO(&fd_Maker);
+		FD_SET(Sbus_fd, &fd_Maker);
 		lose_frameCount = 0;
 		while (true) {
 			InputBuffer = read(Sbus_fd, &sbusData, sizeof(sbusData));
@@ -97,6 +107,52 @@ public:
 		return lose_frameCount;
 	}
 
+	inline int SbusQuickRead()
+	{
+		read(Sbus_fd, &sbusSingleData, sizeof(sbusSingleData));
+		return (int)sbusSingleData;
+	}
+
+	inline int SbusPaser(int *sbusRaw , int *Channel)
+	{
+		Channel[0] = (uint16_t)(((sbusRaw[1] | sbusRaw[2] << 8) & 0x07FF)
+			* sbus_scaler + .5f) + sbus_offset;
+		Channel[1] = (uint16_t)(((sbusRaw[2] >> 3 | sbusRaw[3] << 5)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+		Channel[2] = (uint16_t)(((sbusRaw[3] >> 6 | sbusRaw[4] << 2
+			| sbusRaw[5] << 10) & 0x07FF)* sbus_scaler + .5f)
+			+ sbus_offset;
+		Channel[3] = (uint16_t)(((sbusRaw[5] >> 1 | sbusRaw[6] << 7)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+		Channel[4] = (uint16_t)(((sbusRaw[6] >> 4 | sbusRaw[7] << 4)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+		Channel[5] = (uint16_t)(((sbusRaw[7] >> 7 | sbusRaw[8] << 1
+			| sbusRaw[9] << 9) & 0x07FF)* sbus_scaler + .5f)
+			+ sbus_offset;
+		Channel[6] = (uint16_t)(((sbusRaw[9] >> 2 | sbusRaw[10] << 6)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+		Channel[7] = (uint16_t)(((sbusRaw[10] >> 5 | sbusRaw[11] << 3)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+		Channel[8] = (uint16_t)(((sbusRaw[12] | sbusRaw[13] << 8)
+			& 0x07FF) * sbus_scaler + .5f) + sbus_offset;
+		Channel[9] = (uint16_t)(((sbusRaw[13] >> 3 | sbusRaw[14] << 5)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+		Channel[10] = (uint16_t)(((sbusRaw[14] >> 6 | sbusRaw[15] << 2
+			| sbusRaw[16] << 10) & 0x07FF)* sbus_scaler + .5f)
+			+ sbus_offset;
+		Channel[11] = (uint16_t)(((sbusRaw[16] >> 1 | sbusRaw[17] << 7)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+		Channel[12] = (uint16_t)(((sbusRaw[17] >> 4 | sbusRaw[18] << 4)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+		Channel[13] = (uint16_t)(((sbusRaw[18] >> 7 | sbusRaw[19] << 1
+			| sbusRaw[20] << 9) & 0x07FF)* sbus_scaler + .5f)
+			+ sbus_offset;
+		Channel[14] = (uint16_t)(((sbusRaw[20] >> 2 | sbusRaw[21] << 6)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+		Channel[15] = (uint16_t)(((sbusRaw[21] >> 5 | sbusRaw[22] << 3)
+			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
+	}
+
 	inline ~Sbus()
 	{
 		close(Sbus_fd);
@@ -107,6 +163,7 @@ private:
 	int lose_frameCount;
 	fd_set fd_Maker;
 	uint8_t sbusData[25];
+	uint8_t sbusSingleData;
 	uint16_t ChannelsData[16];
 	const double sbus_scaler = (2000.0f - 1000.0f) / (1800.0f - 200.0f);
 	const int sbus_offset = 1000.0f - (sbus_scaler * 200.0f + 0.5f);
