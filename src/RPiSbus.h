@@ -49,7 +49,8 @@ public:
 		}
 	}
 
-	//int waitTime support > 4700 , microSeconds
+	/*int waitTime support > 4700 , microSeconds
+	  @lose_HoldTime at lease 1 , if you set to zero , will loop forever untill sbus data comfirmly ready*/
 	inline int SbusRead(int* channelsData, int waitTime, int lose_HoldTime)
 	{
 		if (Sbus_fd == -1)
