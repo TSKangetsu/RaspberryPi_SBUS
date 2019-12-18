@@ -43,7 +43,7 @@ int main(void)
 	while (true)
 	{
 		time = micros();
-		lose = newSBUS.SbusRead(ChannelsData, 4700);
+		lose = newSBUS.SbusRead(ChannelsData, 4700 , 2);
 		if (lose != -1)
 		{
 			std::cout << lose << " ";

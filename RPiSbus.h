@@ -15,6 +15,7 @@ enum SbusMode
 class Sbus
 {
 public:
+	inline Sbus() { Sbus_fd = -1; /* This only for init*/ };
 	/* UartDevice is dev file , such as "/dev/ttyS0" 
 	   @SbusMode: Normal for wait all sbus data is ready and parse data to pwm count , 
 	                     use SbusRead(int* channelsData, int waitTime) only , do not use SbusQuickRead()
@@ -48,8 +49,11 @@ public:
 		}
 	}
 
-	inline int SbusRead(int* channelsData, int waitTime)
+	//int waitTime support > 4700 , microSeconds
+	inline int SbusRead(int* channelsData, int waitTime, int lose_HoldTime)
 	{
+		if (Sbus_fd == -1)
+			return -1;
 		FD_ZERO(&fd_Maker);
 		FD_SET(Sbus_fd, &fd_Maker);
 		lose_frameCount = 0;
@@ -59,10 +63,10 @@ public:
 				if (sbusData[0] == 0x0f && sbusData[24] == 0x00)
 					break;
 			}
-			usleep(waitTime);
 			lose_frameCount += 1;
-			if (lose_frameCount == 2)
+			if (lose_frameCount == lose_HoldTime)
 				return -1;
+			usleep(waitTime);
 		}
 
 		ChannelsData[0] = (uint16_t)(((sbusData[1] | sbusData[2] << 8) & 0x07FF)
