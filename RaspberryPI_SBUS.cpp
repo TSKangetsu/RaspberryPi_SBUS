@@ -1,7 +1,7 @@
 ﻿#include <unistd.h>
 #include <iostream>
 #include <wiringPi.h>
-#include "RPiSbus.h"
+#include "src/RPiSbus.h"
 int main(void)
 {
 	wiringPiSetup();
