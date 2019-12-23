@@ -160,10 +160,6 @@ public:
 			& 0x07FF)* sbus_scaler + .5f) + sbus_offset;
 	}
 
-	inline ~Sbus()
-	{
-		close(Sbus_fd);
-	}
 private:
 	int Sbus_fd;
 	int InputBuffer;
